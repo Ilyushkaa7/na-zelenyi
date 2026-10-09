@@ -4,6 +4,7 @@ __pycache__/
 .env
 node_modules/
 test-results/
+content/rewrites/
 sources/*.png
 sources/comment*.txt
 sources/columns*.txt

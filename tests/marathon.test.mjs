@@ -124,3 +124,21 @@ test('mixed wrong answers, serialized due repeats and reloads eventually complet
     assert(m.payload().complete);assert.equal(m.progress().closed,800);
   }
 });
+
+test('two corrected PDF choice markers restore pending cards without losing accepted progress',()=>{
+  for(const [id,missing] of [['ab-07-05','3'],['ab-28-04','4']]){
+    const q=catalog.questions.find(q=>q.id===id);
+    const oldCatalog={...catalog,questions:[{...q,answers:q.answers.filter(a=>a.id!==missing)}]};
+    const old=new Marathon(oldCatalog,explanations,null,seeded(3));old.next();
+    const order=old.state.pending.answers.map(a=>a.id);
+    old.answer(id,q.correct_id);
+    const saved=clone(old.state);
+    const restored=new Marathon({...catalog,questions:[q]},explanations,saved);
+    assert.deepEqual(restored.state.pending.answers.map(a=>a.id),[...order,missing]);
+    assert.equal(restored.state.answered,1);assert.equal(restored.state.items[id].stage,'closed');
+    assert.equal(restored.state.feedback.correct,true);
+    assert(restored.state.pending.answers.every(a=>a.text===q.answers.find(b=>b.id===a.id).text));
+    const damaged=clone(saved);damaged.pending.answers[0].id='unknown';
+    assert.throws(()=>new Marathon({...catalog,questions:[q]},explanations,damaged),/карточка/);
+  }
+});

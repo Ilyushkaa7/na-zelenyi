@@ -9,7 +9,7 @@ const escape = value => clean(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':
 const base = new URL('.', import.meta.url);
 const imageURL = path => new URL(path.replace(/^\/+/, ''), base).href;
 const key = `trafficrules:nazelenyi:${base.pathname}`;
-let catalog, explanations, ui, store, record = freshRecord(), storageError = null, busy = false;
+let catalog, explanations, explanationEntries, ui, store, record = freshRecord(), storageError = null, busy = false;
 const copy = (name, vars = {}) => Object.entries(vars).reduce((text,[k,v]) => text.replaceAll(`{${k}}`,v), clean(ui[name] || name));
 const engine = data => new Marathon(catalog, explanations, data.state ? clone(data.state) : null);
 const showNotice = text => { $('#notice').textContent = clean(text); $('#notice').hidden = !text; };
@@ -49,7 +49,7 @@ function home() {
       ${progress ? `<p class="progress-number">${progress.closed} из ${progress.total}</p><p>${escape(copy('closed_label'))}</p><progress max="${progress.total}" value="${progress.closed}" aria-label="Закрытые вопросы"></progress>` : ''}
       <button class="primary" type="submit" ${storageError ? 'disabled' : ''}>${escape(copy(started ? 'continue' : 'start'))}</button></form>
       <p class="meta">${escape(copy('home_saved_note'))}</p></section>
-    <section><ol class="steps">${['five','retry','control'].map(s=>`<li><div><h3>${escape(copy(`${s}_title`))}</h3><p>${escape(copy(`${s}_description`))}</p></div></li>`).join('')}</ol><p><a href="#explanations">Посмотреть 20 авторских пояснений</a></p></section></div>`;
+    <section><ol class="steps">${['five','retry','control'].map(s=>`<li><div><h3>${escape(copy(`${s}_title`))}</h3><p>${escape(copy(`${s}_description`))}</p></div></li>`).join('')}</ol><p><a href="#explanations">${escape(copy('review_nav'))}</a></p></section></div>`;
   $('#start-form').addEventListener('submit', async event => {
     event.preventDefault();
     const name = $('#home-name').value.trim();
@@ -90,16 +90,19 @@ function summary() {
   root.innerHTML = `<h1>${escape(copy('summary_title'))}</h1><p class="intro">${escape(copy('summary_saved'))}</p><div class="summary-grid"><section class="panel"><h2>За это занятие</h2>${statsHTML(result)}</section><section class="panel"><h2>За день - ${escape(new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'long'}).format(result.finished_at))}</h2>${statsHTML(result.today || {})}</section></div><p>Всего закрыто: <strong>${result.progress.closed} из ${result.progress.total}</strong></p><div class="actions"><button id="resume" class="primary">${escape(copy('continue'))}</button><a href="#">${escape(copy('home'))}</a></div>`;
   $('#resume').addEventListener('click',async()=>{ if (await change(data=>{const current=engine(data);current.next();data.state=current.state;})) setRoute('#marathon'); });
 }
-function review() {
-  const questions = catalog.questions.filter(q => q.ticket === 1);
-  root.innerHTML = `<h1>${escape(copy('review_title'))}</h1><p class="intro review-intro">${escape(copy('review_description'))}</p><a href="#">${escape(copy('home'))}</a><div class="review-list">${questions.map(q => {
+function review(ticket) {
+  const questions = catalog.questions.filter(q => q.ticket === ticket);
+  const navigation = `<div class="actions review-navigation">${ticket > 1 ? `<a href="#explanations/${ticket-1}">${escape(copy('review_previous'))}</a>` : ''}${ticket < 40 ? `<a href="#explanations/${ticket+1}">${escape(copy('review_next'))}</a>` : ''}</div>`;
+  root.innerHTML = `<h1>${escape(copy('review_title'))}</h1><p class="intro review-intro">${escape(copy('review_description'))}</p><div class="review-picker"><label for="review-ticket">${escape(copy('review_ticket'))}</label><select id="review-ticket">${Array.from({length:40},(_,i)=>`<option value="${i+1}" ${i+1===ticket ? 'selected' : ''}>${escape(copy('review_ticket'))} ${i+1}</option>`).join('')}</select></div>${navigation}<a href="#">${escape(copy('home'))}</a><div class="review-list">${questions.map(q => {
     const e = explanations[q.id];
-    return `<article class="panel review-card" id="${escape(q.id)}"><p class="meta">Билет ${q.ticket} - вопрос ${q.number}</p><h2>${escape(q.text)}</h2>${q.image ? `<img class="question-image" src="${escape(imageURL(q.image))}" loading="lazy" alt="Иллюстрация к вопросу ${q.number} билета ${q.ticket}">` : ''}<ol class="review-answers">${q.answers.map(a => `<li${a.id===q.correct_id ? ' class="correct"' : ''}>${escape(a.id)}. ${escape(a.text)}${a.id===q.correct_id ? `<strong>${escape(copy('correct_answer'))}</strong>` : ''}</li>`).join('')}</ol><section class="author-text"><h3>${escape(copy(e.draft ? 'review_original' : 'review_author'))}</h3><p>${escape(e.text)}</p><p class="meta">${escape(e.rule)}</p></section></article>`;
-  }).join('')}</div>`;
+    const original = explanationEntries[q.id].original;
+    return `<article class="panel review-card" id="${escape(q.id)}"><p class="meta">Билет ${q.ticket} - вопрос ${q.number}</p><h2>${escape(q.text)}</h2>${q.image ? `<img class="question-image" src="${escape(imageURL(q.image))}" loading="lazy" alt="Иллюстрация к вопросу ${q.number} билета ${q.ticket}">` : ''}<ol class="review-answers">${q.answers.map(a => `<li${a.id===q.correct_id ? ' class="correct"' : ''}>${escape(a.id)}. ${escape(a.text)}${a.id===q.correct_id ? `<strong>${escape(copy('correct_answer'))}</strong>` : ''}</li>`).join('')}</ol><div class="explanation-comparison"><section class="original-text"><h3>${escape(copy('review_original'))}</h3><p>${escape(original.text)}</p>${original.rule ? `<p class="meta">${escape(original.rule)}</p>` : ''}</section><section class="author-text"><h3>${escape(copy(e.draft ? 'review_original' : 'review_author'))}</h3><p>${escape(e.text)}</p>${e.rule ? `<p class="meta">${escape(e.rule)}</p>` : ''}</section></div></article>`;
+  }).join('')}</div>${navigation}`;
+  $('#review-ticket').addEventListener('change', event => setRoute(`#explanations/${event.target.value}`));
 }
 function render() {
   if (!catalog) return;
-  if (location.hash === '#explanations') review();
+  if (/^#explanations(?:\/\d+)?$/.test(location.hash)) review(Math.min(40, Math.max(1, Number(location.hash.split('/')[1]) || 1)));
   else if (storageError) home();
   else if (location.hash === '#marathon') study();
   else if (location.hash === '#summary') summary();
@@ -141,7 +144,9 @@ try {
     if(!response.ok) throw new Error('Не удалось загрузить материалы. Обнови страницу.');
     return response.json();
   }));
-  explanations = resolveExplanations(explanations);
+  explanationEntries = explanations;
+  explanations = resolveExplanations(explanationEntries);
+  $('#review-link').textContent=copy('review_nav');
   $('#source').href=catalog.source_url;
   $('#storage-note').textContent=copy('storage_note');
   try{

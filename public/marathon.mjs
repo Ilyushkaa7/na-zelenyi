@@ -36,6 +36,12 @@ export class Marathon {
     if (s.pending) {
       const q = this.questions.get(s.pending.id);
       const ids = s.pending.answers?.map(a => a.id);
+      // Restore the two choices previously merged by PDF punctuation errors.
+      // Answer keys are unchanged; keep existing order and accepted progress.
+      const missing = {'ab-07-05':'3', 'ab-28-04':'4'}[s.pending.id];
+      if (q && missing && ids && ids.length === q.answers.length - 1 &&
+          new Set(ids).size === ids.length && !ids.includes(missing) &&
+          ids.every(id => q.answers.some(a => a.id === id))) ids.push(missing);
       if (!q || !ids || ids.length !== q.answers.length || new Set(ids).size !== ids.length ||
           ids.some(id => !q.answers.some(a => a.id === id))) throw new Error('Повреждена сохранённая карточка.');
       // Text edits do not lose progress or change the saved answer order.

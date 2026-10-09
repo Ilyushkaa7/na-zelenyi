@@ -70,6 +70,7 @@ def main():
     content = ROOT / 'public' / 'content'
     existing = json.loads((content / 'explanations.json').read_text(encoding='utf-8')) if (content / 'explanations.json').exists() else {}
     overrides = json.loads((ROOT / 'content' / 'transcription-overrides.json').read_text(encoding='utf-8'))
+    marker_corrections = json.loads((ROOT / 'content' / 'choice-marker-corrections.json').read_text(encoding='utf-8'))
     for ticket in range(1, 41):
         keys = comments(ticket)
         for first in (1, 6, 11, 16):
@@ -99,6 +100,11 @@ def main():
                         raw = override['text'] + '\n' + '\n'.join(f'{i}. {a}' for i,a in enumerate(override['answers'],1))
                     else:
                         raw = cleaned.crop((50, top, min(550,page.width), bottom)).extract_text(x_tolerance=1.3) or ''
+                    if key in marker_corrections:
+                        fix = marker_corrections[key]
+                        if fix['from'] not in raw:
+                            raise ValueError('Choice marker correction no longer matches: ' + key)
+                        raw = raw.replace(fix['from'], fix['to'], 1)
                     matches = list(re.finditer(r'(?<!\S)([1-4])\.(?:\s+|(?=[А-ЯЁA-Zа-яёa-z«]))\s*', raw))
                     if len(matches) not in (2, 3, 4):
                         raise ValueError(f'Cannot extract choices: {key}: {raw}')

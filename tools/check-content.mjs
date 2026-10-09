@@ -1,10 +1,12 @@
 import {readFileSync,existsSync} from 'node:fs';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {resolveExplanations} from '../public/explanations.mjs';
 const root=new URL('../public/',import.meta.url);
 const load=name=>JSON.parse(readFileSync(new URL(`content/${name}.json`,root),'utf8'));
 const catalog=load('questions'),entries=load('explanations'),explanations=resolveExplanations(entries),ui=load('ui');
 const commentary=JSON.parse(readFileSync(new URL('../sources/commentary.json',import.meta.url),'utf8'));
+const review=JSON.parse(readFileSync(new URL('../content/explanation-review.json',import.meta.url),'utf8')).entries;
 assert.equal(catalog.questions.length,800);assert.equal(new Set(catalog.questions.map(q=>q.id)).size,800);
 let images=0;
 for(let ticket=1;ticket<=40;ticket++){
@@ -19,7 +21,12 @@ for(const q of catalog.questions){
   assert.equal(entries[q.id].original.text,commentary[q.id].text);
   assert.equal(entries[q.id].original.rule,commentary[q.id].rule);
   assert.equal(q.correct_id,commentary[q.id].correct);
+  assert.equal(review[q.id].reviewed,true);
+  assert.equal(review[q.id].correct_id,q.correct_id);
+  assert.equal(review[q.id].original_sha256,createHash('sha256').update(entries[q.id].original.text).digest('hex'));
+  assert(!q.answers.some(a=>/(?<!\S)[1-4][.,]?\s+(?=[А-ЯЁ])/.test(a.text)),`Merged choices: ${q.id}`);
 }
+assert.equal(Object.keys(review).length,800);
 assert.equal(Object.keys(explanations).length,800);assert.equal(images,541);
 const html=readFileSync(new URL('index.html',root),'utf8');assert(!/(?:src|href)="\/(?!\/)/.test(html));
 const app=readFileSync(new URL('app.mjs',root),'utf8');assert(!app.includes('/api/'));
