@@ -1,0 +1,11 @@
+var/
+__pycache__/
+*.pyc
+.env
+node_modules/
+test-results/
+sources/*.png
+sources/comment*.txt
+sources/columns*.txt
+sources/questions-plumber.txt
+sources/*.pdf

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="На зеленый - марафон ПДД. 800 вопросов, разбор ответов и повторение ошибок. Прогресс сохраняется в браузере.">
+  <title>На зеленый - марафон ПДД</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css"><script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header class="header"><a class="brand" href="#" aria-label="На зеленый - главная"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>На зеленый</a><nav aria-label="Основная навигация"><a href="#explanations">20 пояснений</a><button id="settings-open" type="button">Настройки</button></nav></header>
+  <div id="notice" role="status" hidden></div><div id="error" role="alert" hidden></div>
+  <main id="app"><p class="loading">Загружаем вопросы...</p></main>
+  <footer><span>Марафон ПДД - категории A, B, M</span><a id="source" target="_blank" rel="noopener noreferrer">Материалы Госавтоинспекции МВД России ↗</a></footer>
+  <dialog id="settings"><div class="dialog-head"><h2>Настройки</h2><button id="settings-close" type="button" class="secondary" aria-label="Закрыть настройки">Закрыть</button></div>
+    <form id="name-form"><label for="settings-name">Твоё имя</label><input id="settings-name" maxlength="30" autocomplete="nickname" placeholder="Например, Илья"><button class="primary" type="submit">Сохранить имя</button></form><p id="storage-note"></p>
+    <div class="reset-area"><button id="reset-open" class="danger" type="button">Сбросить все данные</button><div id="reset-confirm" hidden><p>Удалятся имя, весь прогресс и статистика занятий в этом браузере. Вернуть их после сброса не получится.</p><div class="actions"><button id="reset-do" class="danger" type="button">Удалить все данные</button><button id="reset-cancel" class="secondary" type="button">Отмена</button></div></div></div><p id="settings-error" role="alert" hidden></p>
+  </dialog>
+</body>
+</html>
